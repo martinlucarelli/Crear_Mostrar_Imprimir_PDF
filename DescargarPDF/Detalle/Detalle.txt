@@ -1,0 +1,155 @@
+﻿
+Lo que hicimos en este proyecto fue, primero tomar el PDF que creamos en el proyecto de consola que utilizamos la herramienta QuestPDF
+para ver como iba quedando el PDF en tiempo real.
+Una vez que estaba listo nuestro diseño, lo que hicimos fue crear el proyecto web donde vamos a visualizar y descargar el PDF generado.
+
+Cargar imagenes al PDF:
+
+	Como nuestro pdf contiene una imagen lo que debemos hacer es: 
+	1.Agregar la imagen en una carpta SI O SI dentro de wwwroot. Todos los archivos estaticos obligatoriamente deben estar dentro de
+	root, sino no se puede interactuar con ellos. Esto se debe a que por motivos de seguridad, estos archivos no pueden estar en 
+	carpetas que compartan parte del codigo ya que todos los usuarios tienen acceso a los arhcivos estaticos, y si comparten ubicacion
+	con archivos de codigo pueden tener acceso a archivos como Program.cs u otros.
+
+	2.En el constructor del controller se debe agregar IWebHostEnvironment
+
+		private readonly IWebHostEnvironment _host; //Esto nos permite acceder a la imagen que llevara el PDF
+        private readonly ILogger<HomeController> _logger; 
+
+        public HomeController(IWebHostEnvironment host, ILogger<HomeController> logger)
+        {
+            _host = host;
+            _logger = logger;
+        }
+
+	3.Dentro de la estructura del PDF, se debe agreagr una logica para tomar la ruta de la imagen que queremos colocar.
+
+	            var rutaImagen = Path.Combine(_host.WebRootPath, "Images","LogoNet.png"); --> _host.WebRootPath busca la imagen,
+                if(!System.IO.File.Exists(rutaImagen))                                    no hace falta usar /, solo separ entre ""
+                {
+                    throw new FileNotFoundException($"No se encontro el archivo {rutaImagen}");
+                }
+                var imageData = System.IO.File.ReadAllBytes(rutaImagen); --> Trae la imagen de la ruta indicada y la guarda en imgData
+                           
+                row.ConstantItem(150).Image(imageData);
+
+
+
+DescargarPDF y VerPDF:
+
+	La funcion descargar PDF lo que hace es que cuando se presione el boton automaticamente se descarga el archivo, sin visualizacion
+	propia.
+
+
+        public IActionResult DescargarPDF()
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+
+            var data = Document.Create(document =>  
+                {
+                      (ESTRUCTURA DEL PDF)            -----------> 1.
+                    
+                }).GeneratePdf();
+
+
+            Stream stream= new MemoryStream(data); -------------> 2.
+
+            return File(stream, "aplication/pdf", "detalleVenta.pdf"); ---------------> 3.
+
+        }
+
+        1. data es un array de bytes (byte[]), que es básicamente un conjunto de valores numéricos que representan la 
+        información del PDF.
+        GeneratePdf() toma la estructura del PDF definida en Document.Create() y la convierte en esos bytes.
+        Esos bytes son lo que un lector de PDFs necesita para interpretar el documento y mostrarlo correctamente.
+        ¿Que es un array de bits?
+        Un archivo (como un PDF) no es más que un conjunto de ceros y unos. El PDF se genera como una secuencia de bytes,
+        donde cada byte es un conjunto de 8 bits. Esos bytes tienen una estructura específica que los programas como Adobe Reader
+        pueden leer e interpretar para mostrar el contenido.
+
+        2.Stream es un flujo de datos en memoria. MemoryStream es una versión específica de Stream que guarda los datos
+        en la RAM en lugar de en un archivo físico.
+        En este caso, MemoryStream(data) está guardando el PDF generado en la memoria para poder enviarlo al usuario como
+        un archivo descargable.
+
+        3. La funcion VerPDF y DescargarPDF son exactamente iguales salvo por su return.
+            
+            Return en DescargarPDF --->  Stream stream= new MemoryStream(data);
+                                         return File(stream, "aplication/pdf", "detalleVenta.pdf");
+        
+            Return en VerPDF ---->       return File(data, "application/pdf");
+
+            VerPDF() devuelve directamente el byte[] con "application/pdf", lo que hace que el navegador intente mostrar el
+            PDF en una pestaña o en un visor embebido en lugar de forzar la descarga.
+            Por otro lado DescargarPDF() usa un Stream y le pasa un nombre de archivo ("detalleVenta.pdf"), lo que le indica al
+            navegador que debe descargarlo en lugar de abrirlo en una pestaña.
+
+
+Mostrar PDF en un modal.
+
+    Un modal es una ventana emergente que aparece sobre el contenido de la página sin recargarla. Se usa para mostrar 
+    información adicional sin llevar al usuario a otra página.
+    El modal lo hacemos con Javascript.En este caso, como es a modo de ejemplo, la funcion del modal la hicimos dentro del
+    archivo cshtml, pero lo mas correcto es utilizar un archivo Javascript aparte.
+
+    <button class="btn btn-success" onclick="mostrarPDF()">Ver PDF</button>
+
+    <!-- Modal para mostrar el PDF -->
+    <div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pdfModalLabel">Vista previa del PDF</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe id="pdfViewer" width="100%" height="500px"></iframe> --------> 1.
+                </div>
+                <div class="modal-footer">
+                    <a id="descargarPDF" class="btn btn-primary"  download="detalleVenta.pdf">Descargar PDF</a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script para abrir el PDF en el modal -->
+    <script>
+        function mostrarPDF() {
+
+            var pdfUrl = "/Home/VerPDF"; ---------------> 2.
+
+            // Forzar la recarga del iframe-------------------------->3.
+            var iframe = document.getElementById("pdfViewer");
+            iframe.src = "";  // Limpiar primero
+            setTimeout(() => { iframe.src = pdfUrl; }, 100); // Volver a asignar la URL
+
+            document.getElementById("descargarPDF").href = pdfUrl;------------------------------> 4.
+            var modal = new bootstrap.Modal(document.getElementById('pdfModal')); ----------------------> 5.
+            modal.show();
+        }
+    </script>
+
+
+    1. La etiqueta <iframe/> (Inline Frame) se usa para incrustar otra página web o un documento dentro de la página actual.
+    En este caso, se usa para mostrar un PDF dentro del modal sin necesidad de descargarlo. Se puede usar para PDF, videos
+    mapas u otras paginas.
+
+    2. Indicamos que el PDF se obtiene de HomeController.VerPDF().
+
+    3. El iframe es la ventanita donde se va a mostrar el PDF.Se limpia (iframe.src = "";) para asegurarse de que
+    se recargue correctamente. Se espera 100ms antes de volver a asignar la URL (setTimeout(...)) para evitar problemas de caché.
+
+    4. Le dice al botón "Descargar PDF" que el archivo a descargar es pdfUrl (/Home/VerPDF).
+
+    5. Busca el div del modal en el HTML (id="pdfModal").Usa Bootstrap para abrirlo (modal.show()).
+
+
+
+
+
+
+
+
+	

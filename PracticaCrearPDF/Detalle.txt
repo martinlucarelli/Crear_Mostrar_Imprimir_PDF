@@ -1,0 +1,337 @@
+﻿
+
+Descargamos el paquete QuestPDF que nos permite tener una visualizacion de como queda el PDF a medida que lo vamos creando.
+
+Para descargar ese paqute tuve problemas, ya que no solo se debe descargar desde 
+Nuget, sino que ademas debemos descargar el previwer desde la pagina de QuestPDF. El principal problema
+fue con que no coincidian las versiones del nuget con la que descargamos desde la pagina de QuestPDF, para esto
+utilice los siguientes comandos.
+
+dotnet tool uninstall --global QuestPDF.Previewer
+dotnet tool update --global QuestPDF.Previewer --version 2024.3
+dotnet add package QuestPDF --version 2024.7.1
+dotnet restore.
+
+IMPORTANTE!!. Para que la aplicacion funcione debemos utilizar
+ShowInPreviewer(); y esto va a funcionar mientras tengamos en ejecucion la aplicacion, para eso debemos activar
+la opcion recarga activa al guardar el archivo, esto se activa al lado del boton para ejecutar la aplicacion,
+lo que hace es que cada vez que guardemos el archivo, vamos a visualizar los cambios en la previwer
+
+Ejemplo de donde se coloca el ShowInPeviwer()
+
+Document.Create(document =>
+{
+    document.Page(page =>
+    {
+        page.Header().Height(100).Background(Colors.Blue.Medium);
+        page.Content().Background(Colors.Yellow.Medium);
+        page.Footer().Height(50).Background(Colors.Red.Medium);
+
+    });
+
+
+}).ShowInPreviewer();
+
+
+
+Cuando creamos un documento lo podemos dividir en 4 partes: Page (que es la pagina en general), Header, Content y Footer.
+Dentro de esas etiquetas vamos a ir trabajando.
+Luego, para estructurar el documento lo haremos en forma de grid o grilla, utilizando Row para divir el documento verticalmente y
+Column para hacerlo horizontalmente (Aunque sus nombres esten al reves).
+Tambien hay que saber que se trabaja con las expresiones lamda cuando deseamos repetir algo, por ejemplo, si sabemos que nuestro
+documento tendra en la parte superior 3 secciones, (una foto, un titutolo, un apartado), vamos a utilizar 3 row para crear esos
+"contendores", entonces ahi utilizaremos la expresion lamda. Si dentro de ese row queremos agregar columnas, tambien utilizamos lamda.
+Por ultimo cada elemento que se agrega se lo hace con Item().
+
+
+HEADER:
+
+page.Header().ShowOnce().Row(row =>  ---> Aca se ve bien el uso del lamda, como sabemos que vamos a tener mas de un row, indicamos
+                                          .row y alli creamos el lambda para definir todos los que queramos.
+        {
+            row.ConstantItem(140).Border(1).Height(60).Placeholder();
+
+            row.RelativeItem().Border(1).Column(col =>
+            {
+                col.Item().AlignCenter().Text("NOMBRE EMPRESA S.A").Bold().FontSize(14);
+                col.Item().AlignCenter().Text("AV H.YRIGOYEN 123").FontSize(9);
+                col.Item().AlignCenter().Text("1145903321").FontSize(9);
+                col.Item().AlignCenter().Text("ejemplo@gmail.com").FontSize(9);
+            });
+
+            row.RelativeItem().Border(1).Column(col =>
+            {
+                col.Item().Border(1).BorderColor("#257272")
+                .AlignCenter().Text("RUC 1231244124").FontSize(14);
+
+                col.Item().Background("#257272").Border(1)
+                .BorderColor("#257272").AlignCenter().
+                Text("Boleta de venta").FontColor("#fff");
+          
+                col.Item().AlignCenter().Text("B002-454");
+            });
+    
+
+
+
+
+
+Content:
+
+    Dentro del content creamos una tabla, para ello se utilza Item.table. Lo primero que se debe hacer es definir la cantidad de
+    columnas que tendra y luego se le define el header de la tabla. Por ultimo se define el contenido, que puede ser leido de
+    una bbdd si asi lo quisieramos.
+
+        page.Content().PaddingVertical(10).Column(col1 =>
+        {
+            col1.Item().Text("Datos del cliente").Underline().Bold();
+
+            col1.Item().Text(txt =>
+            {
+                txt.Span("Nombre: ").SemiBold().FontSize(10);
+                txt.Span("Mario Casas").SemiBold().FontSize(10);
+            });
+            col1.Item().Text(txt =>
+            {
+                txt.Span("DNI: ").SemiBold().FontSize(10);
+                txt.Span("24234234").SemiBold().FontSize(10);
+            });
+            col1.Item().Text(txt =>
+            {
+                txt.Span("Direccion: ").SemiBold().FontSize(10);
+                txt.Span("Del Valle 12344").SemiBold().FontSize(10);
+            });
+
+            col1.Item().LineHorizontal(0.5f);
+
+            col1.Item().Table(tabla =>
+            {
+                tabla.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn(3);
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    
+                });
+                tabla.Header(header =>
+                {
+                    header.Cell().Background("#257272")
+                    .Padding(2).Text("Producto").FontColor("#fff");
+                    header.Cell().Background("#257272")
+                    .Padding(2).Text("Precio Unit").FontColor("#fff");
+                    header.Cell().Background("#257272")
+                    .Padding(2).Text("Cantidad").FontColor("#fff");
+                    header.Cell().Background("#257272")
+                    .Padding(2).Text("Total").FontColor("#fff");
+                });
+
+                foreach(var item in Enumerable.Range(1,45))
+                {
+
+                    var cantidad = Placeholders.Random.Next(1, 10);
+                    var precio = Placeholders.Random.Next(5, 15);
+                    var total = cantidad * precio;
+
+                    tabla.Cell().BorderBottom(0.5f).BorderColor("#d9d9d9")
+                    .Padding(2).Text(Placeholders.Label()).FontSize(10);
+
+                    tabla.Cell().BorderBottom(0.5f).BorderColor("#d9d9d9")
+                    .Padding(2).Text(cantidad.ToString()).FontSize(10);
+
+                    tabla.Cell().BorderBottom(0.5f).BorderColor("#d9d9d9")
+                    .Padding(2).Text($" $.{precio}").FontSize(10);
+
+                    tabla.Cell().BorderBottom(0.5f).BorderColor("#d9d9d9")
+                    .Padding(2).Text($" $.{precio}").FontSize(10);
+
+                }
+
+            });
+
+
+ETIQUETAS USADAS:
+
+document.Page() → Crea una nueva página en el documento.
+
+page.Margin(30) → Establece un margen de 30 unidades alrededor de la página.
+
+page.Header() → Define el encabezado de la página.
+
+ShowOnce() → Hace que el encabezado se muestre solo en la primera página.
+
+Row() → Organiza los elementos en una fila horizontal.
+
+ConstantItem(140) → Crea un elemento con un ancho fijo de 140 unidades.
+
+Border(1) → Agrega un borde de 1 unidad al elemento.
+
+Height(60) → Define la altura del elemento en 60 unidades.
+
+Placeholder() → Genera un espacio vacío dentro del diseño.
+
+RelativeItem() → Crea un elemento con tamaño proporcional al espacio disponible.
+
+Column() → Organiza los elementos en una disposición vertical.
+
+AlignCenter() → Centra el contenido dentro del elemento.
+
+Text() → Agrega texto dentro del documento.
+
+Bold() → Aplica negrita al texto.
+
+FontSize() → Ajusta el tamaño del texto.
+
+Background("#257272") → Define el color de fondo del elemento.
+
+BorderColor("#257272") → Cambia el color del borde.
+
+FontColor("#fff") → Define el color del texto.
+
+PaddingVertical(10) → Agrega espacio vertical dentro del contenido.
+
+Underline() → Subraya el texto.
+
+SemiBold() → Aplica un peso de fuente intermedio entre normal y negrita.
+
+Span() → Define un fragmento de texto dentro de otro texto.
+
+LineHorizontal(0.5f) → Dibuja una línea horizontal con grosor de 0.5 unidades.
+
+Table() → Crea una tabla.
+
+ColumnsDefinition() → Define la cantidad y distribución de las columnas de la tabla.
+
+RelativeColumn(3) → Crea una columna que ocupa más espacio proporcionalmente.
+
+RelativeColumn() → Crea columnas de tamaño proporcional estándar.
+
+Header() → Define el encabezado de la tabla.
+
+Cell() → Crea una celda dentro de la tabla.
+
+Padding(2) → Agrega espacio interno dentro de la celda.
+
+BorderBottom(0.5f) → Agrega un borde en la parte inferior de la celda.
+
+BorderColor("#d9d9d9") → Define el color del borde de la celda.
+
+Enumerable.Range(1,45) → Genera una secuencia de 45 elementos.
+
+Placeholders.Random.Next() → Genera un número aleatorio.
+
+Placeholders.Label() → Genera texto de relleno.
+
+AlignRight() → Alinea el contenido a la derecha.
+
+
+
+ETIQUETAS EXTRA A TENER EN CUENTA
+
+*Diseño y Distribución
+
+AlignLeft() → Alinea el contenido a la izquierda.
+
+AlignJustify() → Justifica el texto en el ancho disponible.
+
+PaddingHorizontal() → Agrega espacio horizontal dentro del contenido.
+
+Padding() → Agrega espacio interno en todos los lados del elemento.
+
+Spacing() → Controla el espacio entre elementos dentro de un contenedor.
+
+Width() → Define el ancho de un elemento.
+
+Height() → Define la altura de un elemento.
+
+*Texto y Formato
+
+Italic() → Aplica cursiva al texto.
+
+Strikethrough() → Agrega una línea tachada al texto.
+
+LineHeight() → Ajusta la altura de las líneas de texto.
+
+LetterSpacing() → Ajusta el espacio entre caracteres del texto.
+
+ParagraphSpacing() → Ajusta el espacio entre párrafos.
+
+*Tablas y Celdas
+
+RowSpan() → Hace que una celda ocupe varias filas.
+
+ColSpan() → Hace que una celda ocupe varias columnas.
+
+TextAlignment() → Alinea el contenido dentro de una celda (izquierda, centro, derecha).
+
+MinHeight() → Establece una altura mínima para una celda.
+
+*Estilos y Colores
+
+Opacity() → Ajusta la opacidad del elemento.
+
+Gradient() → Aplica un fondo con degradado de colores.
+
+Shadow() → Agrega una sombra al elemento.
+
+*Elementos Especiales
+
+Image() → Agrega una imagen al documento.
+
+QRCode() → Genera un código QR dentro del documento.
+
+PageNumber() → Muestra el número de página.
+
+TotalPages() → Muestra el total de páginas del documento.
+
+EXTRA:
+
+*Diseño Avanzado
+
+Rotate(degrees) → Rota un elemento en el ángulo especificado.
+
+Scale(factor) → Escala un elemento proporcionalmente.
+
+ZIndex(value) → Controla el orden de apilamiento de los elementos (útil cuando hay elementos superpuestos).
+
+*Texto y Estilo Extra
+
+Truncate() → Corta el texto si es demasiado largo para caber en el espacio disponible.
+
+Overflow() → Controla el comportamiento del contenido cuando no cabe en el área asignada (puede ocultarlo, recortarlo, etc.).
+
+Uppercase() → Convierte el texto en mayúsculas.
+
+Lowercase() → Convierte el texto en minúsculas.
+
+Capitalize() → Convierte la primera letra de cada palabra en mayúscula.
+
+*Tablas y Celdas Avanzadas
+
+AutoColumn() → Crea columnas de ancho automático según el contenido.
+
+AutoRow() → Crea filas de altura automática según el contenido.
+
+Grid() → Permite organizar elementos en una cuadrícula flexible.
+
+Cell().VerticalAlignment() → Alinea el contenido de una celda verticalmente (arriba, centro o abajo).
+
+*Páginas y Documentos
+
+PageBackground(color) → Define un color de fondo para la página completa.
+
+PageOrientation(orientation) → Establece la orientación de la página (horizontal o vertical).
+
+PageSize(size) → Define el tamaño del documento (A4, Carta, etc.).
+
+PageBreak() → Fuerza un salto de página en un punto específico.
+
+*Interactividad y Multimedia
+
+Hyperlink(url) → Agrega un enlace a un sitio web o correo electrónico.
+
+Bookmark(name) → Agrega un marcador interno en el documento para referencia.
+
+GoToBookmark(name) → Salta a un marcador dentro del documento.
+
+Audio() → Inserta un archivo de audio (si el formato lo permite).

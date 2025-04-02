@@ -1,0 +1,53 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+
+<form asp-action="DescargarPDF" asp-controller="Home">
+
+    <button class="btn btn-success" type="submit">Descargar PDF</button>
+</form>
+
+
+<!-- Botón para mostrar el PDF -->
+<button class="btn btn-success" onclick="mostrarPDF()">Ver PDF</button>
+
+<!-- Modal para mostrar el PDF -->
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfModalLabel">Vista previa del PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="pdfViewer" width="100%" height="500px"></iframe>
+            </div>
+            <div class="modal-footer">
+                <a id="descargarPDF" class="btn btn-primary"  download="detalleVenta.pdf">Descargar PDF</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para abrir el PDF en el modal -->
+<script>
+    function mostrarPDF() {
+
+        var pdfUrl = "/Home/VerPDF";
+
+        // Forzar la recarga del iframe
+        var iframe = document.getElementById("pdfViewer");
+        iframe.src = "";  // Limpiar primero
+        setTimeout(() => { iframe.src = pdfUrl; }, 100); // Volver a asignar la URL
+
+        document.getElementById("descargarPDF").href = pdfUrl;
+        var modal = new bootstrap.Modal(document.getElementById('pdfModal'));
+        modal.show();
+    }
+</script>
